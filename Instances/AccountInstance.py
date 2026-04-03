@@ -698,7 +698,7 @@ class Account:
         if self.steam_id == 0:
             return
 
-        userdata_cfg_dir = Path(os.path.dirname(steam_path)) / "userdata" / str(self.steam_id - 76561197960265728) / "730" / "local" / "cfg"
+        userdata_cfg_dir = Path(os.path.dirname(steam_path)) / "userdata" / str(self.steam_id - 76561197960265728) / "440" / "local" / "cfg"
         userdata_cfg_dir.mkdir(parents=True, exist_ok=True)
 
         vendorID = self._settingsManager.get("VendorID", 0)
@@ -766,9 +766,10 @@ class Account:
 
             args = (
                 f'{self._settingsManager.get("SteamArg", "-nofriendsui -vgui -noreactlogin")}'
-                f' -applaunch 730 '
+                f' -applaunch 440 '
                 f'-con_logfile {self.login}.log '
-                f'{self._settingsManager.get("CS2Arg", "")}'
+                f'{self._settingsManager.get("CS2Arg", "")} '
+                f'-windowed -sw -w 383 -h 280'
             )
 
             final = shlex.split(args)
@@ -958,9 +959,10 @@ class Account:
         
         args = (
             f'{self._settingsManager.get("SteamArg", "-nofriendsui -vgui -noreactlogin")}'
-            f' -applaunch 730 '
+            f' -applaunch 440 '
             f'-con_logfile {self.login}.log '
-            f'{self._settingsManager.get("CS2Arg", "")}'
+            f'{self._settingsManager.get("CS2Arg", "")} '
+            f'-windowed -sw -w 383 -h 280'
         )
 
         final = shlex.split(args)
