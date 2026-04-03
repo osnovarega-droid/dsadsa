@@ -1104,19 +1104,51 @@ class Account:
 
     def KillSteamAndCS(self):
         """
-        Ручное завершение — ТОЛЬКО Steam, CS2 НЕ ТРОГАЕМ.
+        Переводит Steam и его дочерние процессы в фоновый режим.
+        Процессы НЕ завершаются.
         """
         try:
             if self.steamProcess and psutil.pid_exists(self.steamProcess.pid):
-                print(f"🛑 [{self.login}] Убиваем Steam (PID {self.steamProcess.pid})")
-                self.steamProcess.kill()
-                self.steamProcess = None
+                self._send_steam_tree_to_background(self.steamProcess.pid)
+                print(f"🫥 [{self.login}] Steam переведён в фон (PID {self.steamProcess.pid})")
         except Exception as e:
-            print(f"Ошибка Steam kill: {e}")
+            print(f"Ошибка перевода Steam в фон: {e}")
 
-        # CS2 НЕ УБИВАЕМ — остаётся работать
+        # CS2 НЕ ТРОГАЕМ, процессы остаются запущенными.
         self.setColor("#DCE4EE")
         self._stop_monitoring = True
+
+    def _send_steam_tree_to_background(self, steam_pid: int):
+        """Сворачивает окна Steam и всех дочерних процессов, без убийства процессов."""
+        try:
+            parent = psutil.Process(steam_pid)
+            children = parent.children(recursive=True)
+            all_pids = [steam_pid] + [child.pid for child in children]
+        except Exception:
+            all_pids = [steam_pid]
+
+        for pid in all_pids:
+            try:
+                windows = findwindows.find_windows(process=pid)
+            except Exception:
+                windows = []
+
+            for hwnd in windows:
+                try:
+                    if not win32gui.IsWindow(hwnd):
+                        continue
+                    win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
+                    win32gui.SetWindowPos(
+                        hwnd,
+                        win32con.HWND_BOTTOM,
+                        0,
+                        0,
+                        0,
+                        0,
+                        win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_NOACTIVATE,
+                    )
+                except Exception:
+                    continue
 
     def ProcessWindowsAfterCS(self, steamPid):
         """
