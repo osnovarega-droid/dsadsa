@@ -258,19 +258,48 @@ def _run_handle_process(args: str) -> str:
     )
     return (result.stdout + result.stderr).strip()
 
-def _parse_handle_values(output: str, name_filter: str, type_filter: str) -> list[str]:
-    handles = []
-    lines = [line for line in output.splitlines() if line.strip()]
+def _parse_mutant_handles(output: str) -> list[tuple[str, str]]:
+    """
+    Парсит вывод Sysinternals handle.exe и возвращает список:
+    (hex-handle, object_name) только для Mutant.
+    """
+    entries: list[tuple[str, str]] = []
+    lines = [line.strip() for line in output.splitlines() if line.strip()]
+
     for line in lines:
-        if name_filter.lower() in line.lower() and type_filter.lower() in line.lower():
-            parts = re.split(r"[ \t]+", line.strip())
-            for part in parts:
-                if part.endswith(":") and len(part) > 1:
-                    hex_value = part[:-1]
-                    if re.fullmatch(r"[0-9A-Fa-f]+", hex_value):
-                        handles.append(hex_value.upper())
-                        break
-    return handles
+        # Пример строки:
+        #  11C: Mutant  \Sessions\1\BaseNamedObjects\csgo_singleton_mutex
+        match = re.search(r"\b([0-9A-Fa-f]+):\s+Mutant\s+(.+)$", line, flags=re.IGNORECASE)
+        if not match:
+            continue
+        handle_hex = match.group(1).upper()
+        object_name = match.group(2).strip()
+        entries.append((handle_hex, object_name))
+    return entries
+
+
+def _is_target_singleton_mutex(object_name: str) -> bool:
+    """
+    Возвращает True только для singleton-мьютексов игры.
+    Важно: НЕ трогаем любые произвольные Mutant-хэндлы, иначе tf.exe может упасть.
+    """
+    value = object_name.lower()
+    if "singleton" not in value:
+        return False
+
+    preferred_tokens = (
+        "csgo_singleton_mutex",
+        "hl2_singleton_mutex",
+        "source_singleton_mutex",
+        "tf_singleton_mutex",
+        "tf2_singleton_mutex",
+    )
+    if any(token in value for token in preferred_tokens):
+        return True
+
+    # Осторожный fallback: singleton есть, но исключаем явно посторонние объекты.
+    blocked_tokens = ("steam", "audio", "cef", "discord", "overlay")
+    return not any(token in value for token in blocked_tokens)
 
 def _close_tf_singleton_mutex(pid: int) -> bool:
     """
@@ -281,26 +310,39 @@ def _close_tf_singleton_mutex(pid: int) -> bool:
         return False
 
     try:
-        # Ищем мьютекс через handle.exe для конкретного процесса.
+        # Ищем только singleton-мьютексы игры, а не любые Mutant.
         search_variants = [
-            f"-accepteula -nobanner -a -p {pid} tf",
+            f"-accepteula -nobanner -a -p {pid} csgo_singleton_mutex",
+            f"-accepteula -nobanner -a -p {pid} hl2_singleton_mutex",
+            f"-accepteula -nobanner -a -p {pid} singleton_mutex",
             f"-accepteula -nobanner -a -p {pid} singleton",
-            f"-accepteula -nobanner -a -p {pid}",
         ]
 
-        handles: list[str] = []
+        target_handles: list[tuple[str, str]] = []
         for args in search_variants:
             search_output = _run_handle_process(args)
-            parsed = _parse_handle_values(search_output, "Mutant", "Mutant")
-            handles = [h for h in parsed if h]
-            if handles:
+            entries = _parse_mutant_handles(search_output)
+            filtered = [(handle_id, obj_name) for handle_id, obj_name in entries if _is_target_singleton_mutex(obj_name)]
+            if filtered:
+                target_handles = filtered
                 break
 
-        if not handles:
+        if not target_handles:
             return False
 
+        # Страховка: handle.exe может вернуть дубль по одному объекту.
+        unique_handles: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for handle_id, obj_name in target_handles:
+            if handle_id in seen:
+                continue
+            seen.add(handle_id)
+            unique_handles.append((handle_id, obj_name))
+
         closed_any = False
-        for handle_id in handles:
+        # Закрываем не более двух валидных singleton-хэндлов на процесс.
+        for handle_id, obj_name in unique_handles[:2]:
+            print(f"🔧 Закрываю singleton mutex [{pid}]: {obj_name} ({handle_id})")
             result = _run_handle_process(f"-accepteula -nobanner -c {handle_id} -p {pid} -y")
             low_result = result.lower()
             if (
