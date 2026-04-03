@@ -3,6 +3,7 @@ import json
 import threading
 import queue
 import time
+import psutil
 
 from Instances.AccountInstance import Account
 
@@ -172,6 +173,15 @@ class AccountManager:
                 break
 
             try:
+                # По ТЗ: если открыто больше 4 окон TF2/CS2 — ничего не делаем.
+                # Аккаунт возвращаем в очередь и ждём, пока число окон снизится.
+                active_cs2 = self._count_active_tf_windows()
+                if active_cs2 > 4:
+                    print(f"⏸️ Пропуск старта [{account.login}]: уже открыто {active_cs2} окон tf.exe (>4)")
+                    self.accounts_start_queue.put(account)
+                    time.sleep(2)
+                    continue
+
                 account.StartGame()  # запуск аккаунта
 
                 # Ждём 5 секунд после открытия каждого аккаунта
@@ -190,3 +200,14 @@ class AccountManager:
                 account.KillSteamAndCS()
             finally:
                 self.accounts_start_queue.task_done()
+
+    @staticmethod
+    def _count_active_tf_windows() -> int:
+        count = 0
+        for proc in psutil.process_iter(["name"]):
+            try:
+                if (proc.info.get("name") or "").lower() == "tf.exe":
+                    count += 1
+            except Exception:
+                continue
+        return count
