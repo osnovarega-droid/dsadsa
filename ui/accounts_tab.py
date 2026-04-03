@@ -266,12 +266,12 @@ class AccountsControl(customtkinter.CTkTabview):
             return
 
         if not os.path.isfile(cs2_exe_path):
-            self._logManager.add_log(f"❌ Не найден CS2 exe: {cs2_exe_path}")
+            self._logManager.add_log(f"❌ Не найден tf.exe: {cs2_exe_path}")
             self._finish_start_sequence()
             return
 
         if not self._sync_required_cfg_files_to_cs2(cs2_path):
-            self._logManager.add_log("❌ Не удалось скопировать cfg-файлы в папку CS2")
+            self._logManager.add_log("❌ Не удалось скопировать cfg-файлы в папку игры")
             self._finish_start_sequence()
             return
 
@@ -639,6 +639,7 @@ class AccountsControl(customtkinter.CTkTabview):
         candidates = [
             os.path.join(cs2_path, "game", "csgo", "cfg"),
             os.path.join(cs2_path, "cfg"),
+            os.path.join(cs2_path, "tf", "cfg"),
         ]
         for folder in candidates:
             if os.path.isdir(folder):
@@ -648,8 +649,8 @@ class AccountsControl(customtkinter.CTkTabview):
     def _sync_required_cfg_files_to_cs2(self, cs2_path):
         cfg_folder = self._resolve_cs2_cfg_folder(cs2_path)
         if not cfg_folder:
-            self._logManager.add_log("CS2 cfg folder not found")
-            return False
+            self._logManager.add_log("⚠️ Папка cfg не найдена, пропускаю копирование cfg-файлов")
+            return True
 
         files_to_sync = [
             "cs2_machine_convars.vcfg",
