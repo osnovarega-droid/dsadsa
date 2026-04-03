@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 3,
+  "periodStart": "2026-03-31T21:00:00.000Z",
+  "periodEnd": "2026-04-07T21:00:00.000Z",
+  "accounts": {
+    "QuantumRiftX1": true,
+    "byte_stalker41": true,
+    "alina_petrova93": true,
+    "valeriyKozakov86": true,
+    "cjywwzqd88w": true
+  },
+  "cases": {},
+  "skins": {},
+  "anotherDrops": {
+    "Mann Co. Supply Crate Key": {
+      "amount": 10,
+      "totalPrice": 24.400000000000002,
+      "lastPriceText": "$2.44",
+      "pricedCount": 10
+    },
+    "Tour of Duty Ticket": {
+      "amount": 2,
+      "totalPrice": 2.02,
+      "lastPriceText": "$1.01",
+      "pricedCount": 2
+    },
+    "Violet Vermin Case": {
+      "amount": 1,
+      "totalPrice": 0.66,
+      "lastPriceText": "$0.66",
+      "pricedCount": 1
+    }
+  },
+  "totalCs2Drops": 0,
+  "totalCs2DropValue": 0,
+  "totalCases": 0,
+  "totalCaseValue": 0,
+  "totalSkins": 0,
+  "totalSkinValue": 0,
+  "totalAllSkins": 0,
+  "totalAllSkinValue": 0,
+  "totalAnotherDrops": 13,
+  "totalAnotherDropValue": 27.080000000000005
+}

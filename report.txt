@@ -1,0 +1,27 @@
+```
+💎 Goose Panel 💎
+
+🗓 PERIOD: 01/04/2026 - 08/04/2026
+
+Accounts: 5
+
+Case                               | Amount | % of drops
+-----------------------------------+--------+-----------
+No case drops                     | 0      | 0.0
+-----------------------------------+--------+-----------
+
+(Top 10 skins)                     | Amount | Price $
+-----------------------------------+--------+--------
+No skins above threshold          | 0      | N/A
+-----------------------------------+--------+--------
+
+➙ Price of all drop: ~ 0.00$.
+➙ Total cases: 0 pcs.
+➙ AVG price of cases/all drop: 0.00$/0.00$.
+
+another drop:
+- Mann Co. Supply Crate Key | 10 | 2.44$
+- Tour of Duty Ticket | 2 | 1.01$
+- Violet Vermin Case | 1 | 0.66$
+➙ Price of another drop: ~ 27.08$.
+```
