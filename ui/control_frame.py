@@ -151,15 +151,20 @@ class ControlFrame(customtkinter.CTkFrame):
             print("❌ Не найдено подходящих окон CS2 для расстановки")
             return
 
-        # 5) Ставим в линию 1-2-3-4... по списку аккаунтов
+        # 5) Ставим в сетку 5 колонок:
+        #    1  2  3  4  5
+        #    6  7  8  9 10
+        columns = 5
         placed = 0
         for idx, (login, pid, hwnd) in enumerate(ordered_windows):
-            x = idx * (window_width + spacing)
-            y = 0
+            col = idx % columns
+            row = idx // columns
+            x = col * (window_width + spacing)
+            y = row * (window_height + spacing)
             try:
                 win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
                 win32gui.MoveWindow(hwnd, x, y, window_width, window_height, True)
-                print(f"📍 {idx + 1}. {login} (PID {pid}) -> ({x},{y})")
+                print(f"📍 {idx + 1}. {login} (PID {pid}) -> row={row + 1}, col={col + 1}, ({x},{y})")
                 placed += 1
             except Exception as e:
                 print(f"⚠️ Не удалось переместить {login}: {e}")
@@ -181,19 +186,35 @@ class ControlFrame(customtkinter.CTkFrame):
         os.system("start https://steamcommunity.com/tradeoffer/new/?partner=1820312068&token=IfT_ec3_")
 
     def kill_all_cs_and_steam(self):
-        """💀 УБИВАЕТ ВСЕ CS2 & Steam процессы + ПРАВИЛЬНЫЕ ЦВЕТА (оранжевые НЕ трогаем!)"""
-        print("💀 УБИВАЮ ВСЕ CS2 & Steam процессы!")
-        killed = 0
+        """Переводит Steam-процессы в фон (без убийства процессов)."""
+        print("🫥 Перевожу Steam-процессы в фон (без kill)...")
+        minimized = 0
         for proc in psutil.process_iter(["pid", "name"]):
             try:
                 name = (proc.info.get("name") or "").lower()
-                if "cs2" in name or "steam" in name or "csgo" in name:
-                    proc.kill()
-                    print(f"💀 [{proc.info['pid']}] {proc.info.get('name')}")
-                    killed += 1
+                if "steam" not in name:
+                    continue
+                windows = self._find_windows_for_pid(proc.info["pid"])
+                for hwnd in windows:
+                    try:
+                        if not win32gui.IsWindow(hwnd):
+                            continue
+                        win32gui.ShowWindow(hwnd, win32con.SW_MINIMIZE)
+                        win32gui.SetWindowPos(
+                            hwnd,
+                            win32con.HWND_BOTTOM,
+                            0,
+                            0,
+                            0,
+                            0,
+                            win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_NOACTIVATE,
+                        )
+                        minimized += 1
+                    except Exception:
+                        pass
             except Exception:
                 pass
-        print(f"✅ УБИТО {killed} процессов!")
+        print(f"✅ Переведено в фон окон Steam: {minimized}")
 
         try:
             account_manager = AccountManager()
@@ -214,7 +235,21 @@ class ControlFrame(customtkinter.CTkFrame):
         if self.accounts_list_frame:
             self.accounts_list_frame.update_label()
 
-        self._clear_steam_userdata()
+    @staticmethod
+    def _find_windows_for_pid(pid):
+        hwnds = []
+
+        def enum_cb(hwnd, _):
+            try:
+                _, wnd_pid = win32process.GetWindowThreadProcessId(hwnd)
+                if wnd_pid == pid and win32gui.GetParent(hwnd) == 0:
+                    hwnds.append(hwnd)
+            except Exception:
+                pass
+            return True
+
+        win32gui.EnumWindows(enum_cb, None)
+        return hwnds
 
     def _clear_steam_userdata(self):
         settings_manager = SettingsManager()
